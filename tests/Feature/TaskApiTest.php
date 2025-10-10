@@ -163,4 +163,72 @@ class TaskApiTest extends TestCase
 
         $this->assertDatabaseCount('tasks', 3);
     }
+
+    public function test_can_get_all_tasks(): void
+    {
+        Task::factory()->count(3)->create();
+
+        $response = $this->getJson('/api/tasks');
+
+        $response->assertStatus(200)
+            ->assertJsonCount(3, 'data');
+    }
+
+    public function test_can_get_a_single_task(): void
+    {
+        $task = Task::factory()->create();
+
+        $response = $this->getJson('/api/tasks/' . $task->id);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                ]
+            ]);
+    }
+
+    public function test_returns_404_for_non_existent_task(): void
+    {
+        $response = $this->getJson('/api/tasks/999');
+
+        $response->assertStatus(404);
+    }
+
+    public function test_can_update_a_task(): void
+    {
+        $task = Task::factory()->create();
+
+        $updateData = [
+            'title' => 'Título actualizado',
+            'status' => 'completada',
+        ];
+
+        $response = $this->putJson('/api/tasks/' . $task->id, $updateData);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'title' => 'Título actualizado',
+                    'status' => 'completada',
+                ]
+            ]);
+
+        $this->assertDatabaseHas('tasks', [
+            'id' => $task->id,
+            'title' => 'Título actualizado',
+        ]);
+    }
+
+    public function test_can_delete_a_task(): void
+    {
+        $task = Task::factory()->create();
+
+        $response = $this->deleteJson('/api/tasks/' . $task->id);
+
+        $response->assertStatus(204);
+
+        $this->assertDatabaseMissing('tasks', ['id' => $task->id]);
+    }
 }
