@@ -8,26 +8,9 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// ============================================================================
-// MALAS PRÁCTICAS INTENCIONALES - PARA DEMOSTRACIÓN DE REFACTORIZACIÓN
-// ============================================================================
-// Este código muestra deliberadamente malas prácticas:
-// - Validación manual mezclada con lógica de negocio
-// - Sin separación de responsabilidades
-// - Código duplicado
-// - Sin usar FormRequests, Resources ni Controllers
-// - Manejo de errores genérico
-// ============================================================================
 
-/**
- * POST /api/tasks - Crear una nueva tarea
- * Ejemplo de MALAS PRÁCTICAS:
- * - Validación manual campo por campo
- * - Lógica de negocio en la ruta
- * - Respuesta sin formato consistente
- */
 Route::post('/tasks', function (Request $request) {
-    // 1. Validación manual, campo por campo (MAL)
+    
     if (!$request->has('title') || $request->input('title') === '') {
         return response()->json([
             'message' => 'El campo title es requerido.',
@@ -62,15 +45,15 @@ Route::post('/tasks', function (Request $request) {
         ], 422);
     }
     
-    // 2. Lógica de negocio mezclada con la definición de la ruta (MAL)
+    
     try {
         $task = new Task();
         $task->title = $request->input('title');
-        $task->description = $request->input('description'); // Si no viene, será null
-        $task->status = $request->input('status', 'pendiente'); // Default manual
+        $task->description = $request->input('description'); 
+        $task->status = $request->input('status', 'pendiente'); 
         $task->save();
 
-        // 3. Respuesta manual sin formato consistente (MAL)
+        
         return response()->json([
             'data' => [
                 'id' => $task->id,
@@ -83,7 +66,7 @@ Route::post('/tasks', function (Request $request) {
         ], 201);
 
     } catch (\Exception $e) {
-        // 4. Manejo de errores genérico y poco informativo (MAL)
+        
         return response()->json([
             'message' => 'Ocurrió un error inesperado al crear la tarea.',
             'error' => $e->getMessage()
@@ -91,19 +74,13 @@ Route::post('/tasks', function (Request $request) {
     }
 });
 
-/**
- * GET /api/tasks - Listar todas las tareas
- * Ejemplo de MALAS PRÁCTICAS:
- * - Sin paginación
- * - Sin filtros
- * - Respuesta sin formato consistente
- */
+
 Route::get('/tasks', function (Request $request) {
     try {
-        // Sin paginación ni filtros (MAL)
+        
         $tasks = Task::all();
         
-        // Respuesta inconsistente con el POST (MAL)
+        
         $tasksArray = [];
         foreach ($tasks as $task) {
             $tasksArray[] = [
@@ -126,25 +103,20 @@ Route::get('/tasks', function (Request $request) {
     }
 });
 
-/**
- * GET /api/tasks/{id} - Obtener una tarea específica
- * Ejemplo de MALAS PRÁCTICAS:
- * - Sin validación de ID
- * - Manejo de errores inconsistente
- */
+
 Route::get('/tasks/{id}', function ($id) {
     try {
-        // Sin validación del ID (MAL)
+        
         $task = Task::find($id);
         
-        // Validación mezclada con lógica (MAL)
+        
         if (!$task) {
             return response()->json([
                 'message' => 'Tarea no encontrada',
             ], 404);
         }
         
-        // Formato diferente otra vez (MAL)
+        
         return response()->json([
             'task' => [
                 'id' => $task->id,
@@ -164,12 +136,7 @@ Route::get('/tasks/{id}', function ($id) {
     }
 });
 
-/**
- * PUT /api/tasks/{id} - Actualizar una tarea
- * Ejemplo de MALAS PRÁCTICAS:
- * - Validación duplicada del POST
- * - Sin reutilización de código
- */
+
 Route::put('/tasks/{id}', function (Request $request, $id) {
     try {
         $task = Task::find($id);
@@ -180,7 +147,7 @@ Route::put('/tasks/{id}', function (Request $request, $id) {
             ], 404);
         }
         
-        // Validación duplicada (MAL - código copiado del POST)
+        
         if ($request->has('title')) {
             if ($request->input('title') === '') {
                 return response()->json([
@@ -218,7 +185,7 @@ Route::put('/tasks/{id}', function (Request $request, $id) {
         
         $task->save();
         
-        // Otro formato diferente (MAL)
+        
         return response()->json([
             'success' => true,
             'data' => $task
@@ -232,15 +199,10 @@ Route::put('/tasks/{id}', function (Request $request, $id) {
     }
 });
 
-/**
- * DELETE /api/tasks/{id} - Eliminar una tarea
- * Ejemplo de MALAS PRÁCTICAS:
- * - Sin validación adecuada
- * - Manejo inconsistente de respuestas
- */
+
 Route::delete('/tasks/{id}', function ($id) {
     try {
-        // Sin validación del formato del ID (MAL)
+        
         $task = Task::find($id);
         
         if (!$task) {
@@ -251,7 +213,7 @@ Route::delete('/tasks/{id}', function ($id) {
         
         $task->delete();
         
-        // Respuesta inconsistente con otros endpoints (MAL)
+        
         return response()->json([
             'mensaje' => 'Tarea eliminada exitosamente',
             'deleted_id' => $id
@@ -265,7 +227,3 @@ Route::delete('/tasks/{id}', function ($id) {
     }
 });
 
-// ============================================================================
-// RUTA ORIGINAL CON BUENAS PRÁCTICAS (comentada para comparación)
-// ============================================================================
-// Route::post('/tasks', [TaskController::class, 'store']);
