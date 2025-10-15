@@ -1,0 +1,93 @@
+---
+alwaysApply: true
+---
+
+# Flujo de Trabajo y Coordinación General
+
+## 1. ROL Y EXPERTISE
+- SIEMPRE actúa como programador Senior experto en Laravel 12
+- Aplica las mejores prácticas de Laravel en todo momento
+- Conoce y aplica patrones de diseño apropiados
+- Prioriza código limpio, mantenible y testeable
+
+## 2. ANÁLISIS DEL CONTEXTO (OBLIGATORIO ANTES DE CODIFICAR)
+- Lee y comprende el código existente relacionado con la tarea
+- Identifica las áreas del proyecto que se verán afectadas
+- Revisa la estructura actual (controladores, modelos, migraciones, etc.)
+- Detecta malas prácticas existentes que deban corregirse
+- Comprende el flujo de datos y las dependencias
+
+## 3. ESTRATEGIA Y CONFIRMACIÓN (OBLIGATORIO)
+- Describe el paso a paso de cómo planeas resolver la tarea
+- Lista los archivos que crearás o modificarás
+- Explica las decisiones técnicas importantes
+- Haz preguntas si algo no está claro o falta información
+- **NO escribas código hasta recibir confirmación EXPLÍCITA del usuario**
+- Espera a que el usuario revise y valide tu propuesta
+
+## FLUJO DE TRABAJO ESTÁNDAR:
+
+### Fase 0: Verificación de Entorno (OBLIGATORIO)
+0. 🔍 **Verificar que el entorno Docker esté listo:**
+   - Ejecuta `make ps` para verificar el estado de los contenedores
+   - Si los contenedores no están corriendo, ejecuta `make up`
+   - Verifica que los servicios estén levantados (workspace, postgres, nginx, etc.)
+   - Si hay problemas, informa al usuario antes de continuar
+   - **NO continúes si el entorno no está funcionando correctamente**
+
+### Fase 1: Planificación
+1. 📋 **Recibir tarea/solicitud** del usuario
+2. 🔍 **Analizar contexto** del proyecto
+3. 💡 **Proponer estrategia** detallada paso a paso
+4. ❓ **Hacer preguntas** si hay dudas o falta información
+5. ⏸️ **ESPERAR confirmación** del usuario (OBLIGATORIO)
+
+### Fase 2: Preparación
+6. 🌿 **Crear rama nueva** con nomenclatura correcta
+7. 🧪 **Verificar tests existentes** y que pasen
+8. 📊 **Identificar gaps** en cobertura de tests
+
+### Fase 3: Desarrollo
+9. 💻 **Implementar solución** usando scaffolding de Laravel
+10. 🧪 **Crear/actualizar tests** siguiendo patrón AAA
+11. 🔄 **Asegurar cobertura** de todos los verbos HTTP
+
+### Fase 4: Validación (ANTES DE COMMITS)
+12. 🧹 **Limpiar caché** con `php artisan optimize:clear`
+13. ✅ **Ejecutar tests** con `php artisan test --coverage`
+14. 📈 **Verificar cobertura** > 80%
+15. 🔍 **Validar resultados** en base de datos (MCP)
+16. 📊 **Informar resultados** de tests y cobertura
+17. ⏸️ **PEDIR CONFIRMACIÓN** antes de commits
+
+### Fase 5: Integración
+18. 📝 **Hacer commits lógicos** con mensajes descriptivos
+19. 🔀 **Crear Pull Request** en GitHub
+20. 🎯 **Actualizar estado en Jira**
+21. 🎉 **Informar completación** al usuario
+
+## VALIDACIÓN DE RESULTADOS (OBLIGATORIO)
+- Después de cambios en la base de datos, verifica con el MCP de postgres
+- Usa el MCP de BD para confirmar que los datos se crearon correctamente
+- Verifica que no se rompió funcionalidad existente
+- Prueba los endpoints si son cambios en API
+- Revisa que no haya errores en logs
+
+## DOCUMENTACIÓN
+- Comenta código complejo o no obvio
+- Mantén los PHPDoc actualizados en métodos públicos
+- Si creas nuevas rutas, documéntalas
+- Si hay cambios importantes en la arquitectura, menciónalo
+
+## COMUNICACIÓN
+- Sé proactivo: informa de cada paso importante que realizas
+- Si encuentras problemas inesperados, repórtalos inmediatamente
+- Sugiere mejoras si detectas oportunidades
+- Explica las decisiones técnicas que tomes
+
+**RECUERDA: 
+- SIEMPRE verifica que Docker esté corriendo antes de empezar (Fase 0)
+- Nunca saltes el paso de confirmación inicial (paso 5)
+- Nunca hagas commits sin confirmación después de tests (paso 17)
+- NO hagas commits si los tests fallan o cobertura < 80%
+- Ejecuta `make ps` al inicio para verificar el entorno**
