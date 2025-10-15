@@ -1,0 +1,42 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx -y @upstash/context7-mcp",
+      "env": {},
+      "args": []
+    },
+    "postgres": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "mcp/postgres",
+        "postgresql://${DB_USERNAME}:${DB_PASSWORD}@host.docker.internal:${DB_PORT}/${DB_DATABASE}"
+      ]
+    },
+    "Postman": {
+      "url": "https://mcp.postman.com/minimal",
+      "headers": {
+        "Authorization": "Bearer ${POSTMAN_API_KEY}"
+      }
+    },
+    "BD": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "-e",
+        "DATABASE_URL=postgresql://${DB_USERNAME}:${DB_PASSWORD}@host.docker.internal:${DB_PORT}/${DB_DATABASE}",
+        "souhardyak/mcp-db-server:latest"
+      ]
+    },
+    "Atlassian": {
+      "command": "npx mcp-remote https://mcp.atlassian.com/v1/sse",
+      "env": {},
+      "args": []
+    }
+  }
+}
+
