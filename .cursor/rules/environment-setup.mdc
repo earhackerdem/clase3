@@ -1,0 +1,56 @@
+---
+alwaysApply: true
+---
+
+# Configuración y Verificación de Entorno Docker
+
+## ACCESO AL WORKSPACE Y VERIFICACIÓN DE ENTORNO
+
+### ANTES de empezar cualquier tarea:
+- Ejecuta `make ps` para verificar el estado de los contenedores
+- Verifica que estén corriendo: workspace, postgres, nginx, etc.
+- Si no están corriendo, ejecuta `make up` para levantarlos
+- Espera a que todos los servicios estén listos antes de continuar
+
+### Para ejecutar comandos de Laravel:
+- Usa `make shell` para acceder al contenedor workspace
+- Esto te da acceso al contenedor Docker con PHP y artisan
+
+### Comandos útiles dentro del workspace:
+- `php artisan migrate` - Ejecutar migraciones
+- `php artisan db:seed` - Ejecutar seeders
+- `php artisan test` - Ejecutar tests
+- `php artisan optimize:clear` - Limpiar cachés
+
+### Comandos Make disponibles desde fuera del contenedor:
+- `make ps` - Ver estado de contenedores
+- `make up` - Levantar contenedores
+- `make down` - Detener contenedores
+- `make shell` - Acceder al workspace
+- `make artisan CMD="migrate"` - Ejecutar comando artisan
+- `make test` - Ejecutar tests
+- `make clear` - Limpiar cachés
+
+## VERIFICACIÓN DE ESTADO
+
+Cuando ejecutes `make ps`, verifica que veas algo como:
+
+```
+NAME                          STATUS          PORTS
+clase3-workspace-1            Up             
+clase3-postgres-1             Up (healthy)    5432->5432
+clase3-nginx-1                Up             8000->80
+```
+
+Si algún servicio está:
+- **Exited** - El contenedor se detuvo, ejecuta `make up`
+- **Unhealthy** - Hay problemas con el servicio, revisa logs con `make logs`
+- **Not running** - Los contenedores no están levantados, ejecuta `make up`
+
+## RESOLUCIÓN DE PROBLEMAS
+
+Si encuentras errores:
+1. Revisa los logs: `make logs`
+2. Reinicia los contenedores: `make restart`
+3. Si persiste, baja y sube: `make down && make up`
+4. Si aún falla, informa al usuario del problema específico

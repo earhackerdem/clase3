@@ -1,0 +1,129 @@
+---
+alwaysApply: true
+---
+
+# Integración con Jira (SI APLICA)
+
+## OBTENER INFORMACIÓN DE JIRA
+
+### Al recibir una tarea de Jira:
+- Usa el MCP de Atlassian para obtener toda la información
+- Lee la descripción completa de la tarea
+- Identifica y extrae:
+  - **Historia de Usuario** (User Story)
+  - **Objetivos** (Goals)
+  - **Criterios de Aceptación** (Acceptance Criteria)
+
+### Ejemplo de obtención:
+```
+1. Obtener información del usuario actual
+2. Buscar tarea por issue key (ej: SCRUM-5)
+3. Leer descripción completa
+4. Extraer elementos clave
+5. Mostrar resumen al usuario
+```
+
+## ACTUALIZAR ESTADO DE LA TAREA
+
+### Al comenzar a trabajar:
+- Cambia el estado de "Por hacer" a "En progreso"
+- Agrega un comentario indicando que comenzaste a trabajar
+- Si creaste una rama, menciona el nombre de la rama
+
+### Ejemplo de comentario al iniciar:
+```markdown
+🚀 Comenzando a trabajar en esta tarea
+
+He analizado los requisitos y voy a proceder con la implementación.
+
+🌿 Rama creada: `feature/SCRUM-5-actualizar-tareas`
+```
+
+## ASOCIAR COMMITS CON JIRA
+
+### Formato de commits con issue key:
+```bash
+git commit -m "[SCRUM-5] Crear modelo Task y migración"
+git commit -m "[SCRUM-5] Implementar TaskController"
+git commit -m "[SCRUM-5] Agregar tests con 87% coverage"
+```
+
+### Esto permite:
+- Trackear cambios desde Jira
+- Ver commits asociados a la tarea
+- Generar release notes automáticas
+
+## DESPUÉS DE HACER EL PR
+
+### Actualizar estado en Jira:
+1. Mover tarea a "En revisión" o estado similar
+2. Agregar comentario con:
+   - Enlace al Pull Request
+   - Resumen de cambios
+   - Tests agregados
+   - Cobertura alcanzada
+
+### Ejemplo de comentario con PR:
+```markdown
+✅ Pull Request creado
+
+### Cambios implementados
+- ✅ Endpoint PUT /api/tasks/{id} para actualizar tareas
+- ✅ Validaciones con UpdateTaskRequest
+- ✅ API Resource para respuestas
+- ✅ Tests completos para todos los verbos HTTP
+
+### Testing
+- ✅ 25 tests ejecutados, todos pasaron
+- ✅ Cobertura alcanzada: 87%
+
+### Pull Request
+https://github.com/usuario/proyecto/pull/123
+
+La tarea está lista para revisión de código.
+```
+
+## TRANSICIONES DE ESTADO
+
+### Flujo típico:
+1. **Por hacer** → Al recibir la tarea
+2. **En progreso** → Al crear rama y comenzar trabajo
+3. **En revisión** → Al crear Pull Request
+4. **Done/Completada** → Cuando el PR sea merged
+
+### Obtener transiciones disponibles:
+Usa el MCP de Atlassian para obtener las transiciones disponibles para la tarea específica.
+
+## COMENTARIOS EN JIRA
+
+### Agrega comentarios en momentos clave:
+- ✅ Al comenzar a trabajar (con nombre de rama)
+- ✅ Si encuentras bloqueadores o problemas
+- ✅ Al crear el Pull Request (con enlace y resumen)
+- ✅ Si necesitas clarificación de requisitos
+
+### Formato de comentarios:
+- Usa emojis para mejorar legibilidad (🚀, ✅, ⚠️, 🌿)
+- Sé claro y conciso
+- Incluye enlaces relevantes (PR, commits, documentación)
+- Menciona métricas importantes (cobertura, tests)
+
+## VALIDACIÓN DE CRITERIOS DE ACEPTACIÓN
+
+### Antes de mover a "En revisión":
+- Verifica que se cumplan TODOS los criterios de aceptación
+- Si alguno no se cumple, agrega comentario explicando por qué
+- Propón alternativas si es necesario
+
+### Ejemplo de validación:
+```markdown
+✅ Validación de Criterios de Aceptación
+
+- [x] Endpoint PUT /api/tasks/{id} creado
+- [x] Validaciones implementadas
+- [x] Tests con cobertura > 80%
+- [x] API Resource para respuestas
+- [x] Documentación actualizada
+
+Todos los criterios de aceptación han sido cumplidos.
+```
