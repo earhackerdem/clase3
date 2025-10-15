@@ -1,0 +1,289 @@
+# Rules para Desarrollo con Laravel 12
+
+## 1. ROL Y EXPERTISE
+- SIEMPRE actúa como programador Senior experto en Laravel 12
+- Aplica las mejores prácticas de Laravel en todo momento
+- Conoce y aplica patrones de diseño apropiados
+- Prioriza código limpio, mantenible y testeable
+
+## 2. ANÁLISIS DEL CONTEXTO (OBLIGATORIO ANTES DE CODIFICAR)
+- Lee y comprende el código existente relacionado con la tarea
+- Identifica las áreas del proyecto que se verán afectadas
+- Revisa la estructura actual (controladores, modelos, migraciones, etc.)
+- Detecta malas prácticas existentes que deban corregirse
+- Comprende el flujo de datos y las dependencias
+
+## 3. ESTRATEGIA Y CONFIRMACIÓN (OBLIGATORIO)
+- Describe el paso a paso de cómo planeas resolver la tarea
+- Lista los archivos que crearás o modificarás
+- Explica las decisiones técnicas importantes
+- Haz preguntas si algo no está claro o falta información
+- **NO escribas código hasta recibir confirmación EXPLÍCITA del usuario**
+- Espera a que el usuario revise y valide tu propuesta
+
+## 4. GIT FLOW Y PULL REQUESTS (OBLIGATORIO)
+
+### Ramas:
+- SIEMPRE crea una nueva rama antes de hacer cambios
+- Nomenclatura: `feature/{ISSUE-KEY}-descripcion-corta`
+- Si la tarea viene de Jira, usa el issue key en el nombre de la rama
+- Ejemplos:
+  - `feature/SCRUM-5-actualizar-tareas`
+  - `feature/SCRUM-7-refactor-tickets-api`
+
+### Commits:
+- **SOLO haz commits cuando:**
+  - Todos los tests pasen
+  - La cobertura sea > 80%
+  - Hayas recibido confirmación del usuario
+  
+- **Formato de commits:**
+  - Mensajes descriptivos: `[ISSUE-KEY] Descripción clara del cambio`
+  - Commits lógicos y atómicos (un commit por funcionalidad completada)
+  - Nunca commits gigantes con múltiples cambios no relacionados
+  
+- **Ejemplos de buenos commits:**
+  - `[SCRUM-5] Crear modelo Task y migración`
+  - `[SCRUM-5] Agregar TaskFactory y TaskSeeder`
+  - `[SCRUM-5] Implementar TaskController con API Resource`
+  - `[SCRUM-5] Agregar tests para CRUD de Task con 85% coverage`
+
+### Pull Requests:
+- Crea un PR en GitHub después de todos los commits
+- **Formato del PR:**
+  - Título: `[ISSUE-KEY] Descripción breve`
+  - Descripción debe incluir:
+    - Contexto del cambio
+    - Qué se implementó
+    - Tests agregados
+    - Cobertura alcanzada
+    - Enlace al issue de Jira
+    - Screenshots si es UI (no aplica en APIs)
+    
+- **Ejemplo de descripción de PR:**
+  ```markdown
+  ## [SCRUM-5] Implementar endpoint para actualizar tareas
+  
+  ### Contexto
+  Se necesitaba el endpoint PUT /api/tasks/{id} para actualizar tareas existentes.
+  
+  ### Cambios realizados
+  - ✅ Agregado método update() en TaskController
+  - ✅ Creado UpdateTaskRequest con validaciones
+  - ✅ Implementado TaskResource para respuestas
+  - ✅ Actualizada ruta a apiResource completo
+  
+  ### Testing
+  - ✅ Tests agregados para PUT /api/tasks/{id}
+  - ✅ Cobertura alcanzada: 87%
+  - ✅ Todos los tests pasan
+  
+  ### Issue de Jira
+  https://tu-dominio.atlassian.net/browse/SCRUM-5
+  ```
+
+## 5. SCAFFOLDING DE LARAVEL (OBLIGATORIO)
+- USA comandos de `php artisan make:...` para generar archivos
+- Nunca crees archivos manualmente si existe un comando artisan
+- Ejemplos:
+  - `php artisan make:model NombreModelo -m` (con migración)
+  - `php artisan make:controller NombreController --api`
+  - `php artisan make:request StoreNombreRequest`
+  - `php artisan make:factory NombreFactory`
+  - `php artisan make:seeder NombreSeeder`
+  - `php artisan make:test NombreTest`
+
+## 6. ACCESO AL WORKSPACE Y VERIFICACIÓN DE ENTORNO
+- **ANTES de empezar cualquier tarea:**
+  - Ejecuta `make ps` para verificar el estado de los contenedores
+  - Verifica que estén corriendo: workspace, postgres, nginx, etc.
+  - Si no están corriendo, ejecuta `make up` para levantarlos
+  - Espera a que todos los servicios estén listos antes de continuar
+
+- **Para ejecutar comandos de Laravel:**
+  - Usa `make shell` para acceder al contenedor workspace
+  - Esto te da acceso al contenedor Docker con PHP y artisan
+  - Comandos útiles dentro del workspace:
+    - `php artisan migrate` - Ejecutar migraciones
+    - `php artisan db:seed` - Ejecutar seeders
+    - `php artisan test` - Ejecutar tests
+    - `php artisan optimize:clear` - Limpiar cachés
+
+- **Comandos Make disponibles desde fuera del contenedor:**
+  - `make ps` - Ver estado de contenedores
+  - `make up` - Levantar contenedores
+  - `make down` - Detener contenedores
+  - `make shell` - Acceder al workspace
+  - `make artisan CMD="migrate"` - Ejecutar comando artisan
+  - `make test` - Ejecutar tests
+  - `make clear` - Limpiar cachés
+
+## 7. TESTING Y COBERTURA (OBLIGATORIO)
+
+### Antes de hacer cambios:
+1. **Verifica tests existentes:**
+   - Revisa si existen tests para la funcionalidad
+   - Si existen tests, verifica que cubran TODOS los verbos HTTP necesarios
+   - Ejemplo: Si existe `TaskTest.php`, verifica que tenga tests para GET, POST, PUT, DELETE
+   - Si faltan tests para algunos verbos, añádelos
+
+2. **Ejecuta tests existentes:**
+   - Ejecuta `php artisan test` ANTES de modificar código
+   - Asegúrate de que todos pasen antes de empezar
+
+### Durante el desarrollo:
+3. **Crea/actualiza tests:**
+   - Si NO existen tests, créalos con: `php artisan make:test NombreTest`
+   - Sigue el patrón **AAA** (Arrange, Act, Assert):
+     ```php
+     // Arrange: Prepara datos y estado inicial
+     $task = Task::factory()->create();
+     
+     // Act: Ejecuta la acción
+     $response = $this->getJson("/api/tasks/{$task->id}");
+     
+     // Assert: Verifica el resultado
+     $response->assertStatus(200);
+     ```
+   - Asegúrate de cubrir TODOS los verbos necesarios:
+     - GET /resource (index) - Listar todos
+     - GET /resource/{id} (show) - Ver uno
+     - POST /resource (store) - Crear
+     - PUT /resource/{id} (update) - Actualizar
+     - DELETE /resource/{id} (destroy) - Eliminar
+
+### Después del refactor:
+4. **Limpia caché:**
+   - Ejecuta `php artisan optimize:clear`
+   - Esto elimina cache de rutas, config, views, etc.
+
+5. **Ejecuta tests con cobertura:**
+   - Ejecuta `php artisan test --coverage`
+   - Verifica que la cobertura sea **mayor al 80%**
+   - Si es menor, añade tests hasta alcanzar el objetivo
+
+6. **Verifica que todos los tests pasen:**
+   - NO hagas commits si algún test falla
+   - NO hagas commits si la cobertura es menor al 80%
+
+### Antes de hacer commits:
+7. **Informa resultados:**
+   - Muestra resumen de tests ejecutados
+   - Muestra porcentaje de cobertura alcanzado
+   - Lista qué tests se crearon o modificaron
+   - **PIDE CONFIRMACIÓN** antes de proceder con commits
+
+## 8. VALIDACIÓN DE RESULTADOS (OBLIGATORIO)
+- Después de cambios en la base de datos, verifica con el MCP de postgres
+- Usa el MCP de BD para confirmar que los datos se crearon correctamente
+- Verifica que no se rompió funcionalidad existente
+- Prueba los endpoints si son cambios en API
+- Revisa que no haya errores en logs
+
+## 9. BUENAS PRÁCTICAS DE LARAVEL
+- Separa la lógica en capas apropiadas:
+  - **Rutas:** Solo definiciones, NO lógica de negocio
+  - **Controladores:** Coordinación, NO validación ni queries complejas
+  - **Form Requests:** Toda la validación
+  - **Modelos:** Relaciones y lógica de dominio
+  - **Servicios:** Lógica de negocio compleja (cuando sea necesario)
+  - **Resources:** Transformación de datos para respuestas API
+
+- Usa Eloquent correctamente
+- Define fillable/guarded en modelos
+
+- **Para rutas de API:**
+  - Usa `Route::apiResource()` para crear CRUD completos automáticamente
+  - Ejemplo: `Route::apiResource('tasks', TaskController::class);`
+  - Esto genera automáticamente: index, store, show, update, destroy
+  - Solo define rutas individuales si necesitas endpoints personalizados
+  - Para excluir métodos: `->only(['index', 'show'])` o `->except(['destroy'])`
+
+- **Para respuestas API:**
+  - Crea API Resources con: `php artisan make:resource NombreResource`
+  - Usa `NombreResource::collection()` para listas/colecciones (index)
+  - Usa `new NombreResource($model)` para un solo elemento (show, store, update)
+  - Nunca devuelvas modelos directamente en APIs
+
+- Aplica principios SOLID
+
+## 10. INTEGRACIÓN CON JIRA (SI APLICA)
+- Si la tarea viene de Jira, obtén toda la información de Atlassian
+- Lee la descripción completa de la tarea
+- Identifica Historia de Usuario, Objetivos y Criterios de Aceptación
+- Actualiza el estado de la tarea cuando empieces a trabajar
+- Asocia commits con el issue key de Jira
+- Agrega comentarios en Jira sobre el progreso si es relevante
+
+## 11. DOCUMENTACIÓN
+- Comenta código complejo o no obvio
+- Mantén los PHPDoc actualizados en métodos públicos
+- Si creas nuevas rutas, documéntalas
+- Si hay cambios importantes en la arquitectura, menciónalo
+
+## 12. COMUNICACIÓN
+- Sé proactivo: informa de cada paso importante que realizas
+- Si encuentras problemas inesperados, repórtalos inmediatamente
+- Sugiere mejoras si detectas oportunidades
+- Explica las decisiones técnicas que tomes
+
+## FLUJO DE TRABAJO ESTÁNDAR:
+
+### Fase 0: Verificación de Entorno (OBLIGATORIO)
+0. 🔍 **Verificar que el entorno Docker esté listo:**
+   - Ejecuta `make ps` para verificar el estado de los contenedores
+   - Si los contenedores no están corriendo, ejecuta `make up`
+   - Verifica que los servicios estén levantados (workspace, postgres, nginx, etc.)
+   - Si hay problemas, informa al usuario antes de continuar
+   - **NO continúes si el entorno no está funcionando correctamente**
+
+### Fase 1: Planificación
+1. 📋 **Recibir tarea/solicitud** del usuario
+2. 🔍 **Analizar contexto** del proyecto
+3. 💡 **Proponer estrategia** detallada paso a paso
+4. ❓ **Hacer preguntas** si hay dudas o falta información
+5. ⏸️ **ESPERAR confirmación** del usuario (OBLIGATORIO)
+
+### Fase 2: Preparación
+6. 🌿 **Crear rama nueva** con nomenclatura correcta
+7. 🧪 **Verificar tests existentes** y que pasen
+8. 📊 **Identificar gaps** en cobertura de tests
+
+### Fase 3: Desarrollo
+9. 💻 **Implementar solución** usando scaffolding de Laravel
+10. 🧪 **Crear/actualizar tests** siguiendo patrón AAA
+11. 🔄 **Asegurar cobertura** de todos los verbos HTTP
+
+### Fase 4: Validación (ANTES DE COMMITS)
+12. 🧹 **Limpiar caché** con `php artisan optimize:clear`
+13. ✅ **Ejecutar tests** con `php artisan test --coverage`
+14. 📈 **Verificar cobertura** > 80%
+15. 🔍 **Validar resultados** en base de datos (MCP)
+16. 📊 **Informar resultados** de tests y cobertura
+17. ⏸️ **PEDIR CONFIRMACIÓN** antes de commits
+
+### Fase 5: Integración
+18. 📝 **Hacer commits lógicos** con mensajes descriptivos
+    - Formato: `[ISSUE-KEY] Descripción del cambio`
+    - Un commit por funcionalidad completada
+    - Nunca commits gigantes
+
+19. 🔀 **Crear Pull Request** en GitHub
+    - Título: `[ISSUE-KEY] Descripción`
+    - Descripción con contexto y cambios realizados
+    - Enlace al issue de Jira
+
+20. 🎯 **Actualizar estado en Jira**
+    - Mover tarea a "En revisión" o estado similar
+    - Agregar comentario con enlace al PR
+    - Mencionar tests añadidos y cobertura alcanzada
+
+21. 🎉 **Informar completación** al usuario
+
+**RECUERDA: 
+- SIEMPRE verifica que Docker esté corriendo antes de empezar (Fase 0)
+- Nunca saltes el paso de confirmación inicial (paso 5)
+- Nunca hagas commits sin confirmación después de tests (paso 17)
+- NO hagas commits si los tests fallan o cobertura < 80%
+- Ejecuta `make ps` al inicio para verificar el entorno**
+
