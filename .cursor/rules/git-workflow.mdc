@@ -1,0 +1,93 @@
+---
+alwaysApply: true
+---
+
+# Git Flow y Pull Requests
+
+## RAMAS
+
+### Nomenclatura:
+- SIEMPRE crea una nueva rama antes de hacer cambios
+- Formato: `feature/{ISSUE-KEY}-descripcion-corta`
+- Si la tarea viene de Jira, usa el issue key en el nombre de la rama
+
+### Ejemplos:
+- `feature/SCRUM-5-actualizar-tareas`
+- `feature/SCRUM-7-refactor-tickets-api`
+- `feature/SCRUM-12-agregar-validaciones`
+
+## COMMITS
+
+### SOLO haz commits cuando:
+- ✅ Todos los tests pasen
+- ✅ La cobertura sea > 80%
+- ✅ Hayas recibido confirmación del usuario
+
+### Formato de commits:
+- Mensajes descriptivos: `[ISSUE-KEY] Descripción clara del cambio`
+- Commits lógicos y atómicos (un commit por funcionalidad completada)
+- Nunca commits gigantes con múltiples cambios no relacionados
+
+### Ejemplos de buenos commits:
+```bash
+git commit -m "[SCRUM-5] Crear modelo Task y migración"
+git commit -m "[SCRUM-5] Agregar TaskFactory y TaskSeeder"
+git commit -m "[SCRUM-5] Implementar TaskController con API Resource"
+git commit -m "[SCRUM-5] Agregar tests para CRUD de Task con 85% coverage"
+```
+
+### ❌ Malos commits (EVITAR):
+```bash
+git commit -m "fix"
+git commit -m "wip"
+git commit -m "changes"
+git commit -m "update files"
+```
+
+## PULL REQUESTS
+
+### Formato del PR:
+
+**Título:** `[ISSUE-KEY] Descripción breve`
+
+**Descripción debe incluir:**
+- Contexto del cambio
+- Qué se implementó
+- Tests agregados
+- Cobertura alcanzada
+- Enlace al issue de Jira
+- Screenshots si es UI (no aplica en APIs)
+
+### Ejemplo de descripción de PR:
+
+```markdown
+## [SCRUM-5] Implementar endpoint para actualizar tareas
+
+### Contexto
+Se necesitaba el endpoint PUT /api/tasks/{id} para actualizar tareas existentes.
+
+### Cambios realizados
+- ✅ Agregado método update() en TaskController
+- ✅ Creado UpdateTaskRequest con validaciones
+- ✅ Implementado TaskResource para respuestas
+- ✅ Actualizada ruta a apiResource completo
+
+### Testing
+- ✅ Tests agregados para PUT /api/tasks/{id}
+- ✅ Cobertura alcanzada: 87%
+- ✅ Todos los tests pasan
+
+### Issue de Jira
+https://tu-dominio.atlassian.net/browse/SCRUM-5
+```
+
+## PROCESO DE INTEGRACIÓN
+
+1. **Hacer commits lógicos** con mensajes descriptivos
+2. **Push de la rama** al repositorio remoto
+3. **Crear Pull Request** en GitHub
+4. **Actualizar Jira:**
+   - Mover tarea a "En revisión"
+   - Agregar comentario con enlace al PR
+   - Mencionar tests y cobertura alcanzada
+5. **Informar al usuario** que todo está listo para revisión

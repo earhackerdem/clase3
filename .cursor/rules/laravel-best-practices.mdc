@@ -1,0 +1,196 @@
+---
+alwaysApply: true
+---
+
+# Buenas Prácticas de Laravel 12
+
+## SCAFFOLDING DE LARAVEL (OBLIGATORIO)
+
+### USA comandos de `php artisan make:...` para generar archivos
+Nunca crees archivos manualmente si existe un comando artisan
+
+### Comandos disponibles:
+```bash
+php artisan make:model NombreModelo -m          # Con migración
+php artisan make:controller NombreController --api  # Controlador API
+php artisan make:request StoreNombreRequest     # Form Request
+php artisan make:factory NombreFactory          # Factory
+php artisan make:seeder NombreSeeder            # Seeder
+php artisan make:test NombreTest                # Test
+php artisan make:resource NombreResource        # API Resource
+```
+
+## SEPARACIÓN DE CAPAS
+
+### Organiza la lógica correctamente:
+
+- **Rutas:** Solo definiciones, NO lógica de negocio
+- **Controladores:** Coordinación, NO validación ni queries complejas
+- **Form Requests:** Toda la validación
+- **Modelos:** Relaciones y lógica de dominio
+- **Servicios:** Lógica de negocio compleja (cuando sea necesario)
+- **Resources:** Transformación de datos para respuestas API
+
+## RUTAS DE API
+
+### Usa `Route::apiResource()` para CRUD completos:
+
+```php
+// ✅ CORRECTO - Una línea genera 5 endpoints
+Route::apiResource('tasks', TaskController::class);
+
+// Esto genera automáticamente:
+// GET    /tasks           -> index()
+// POST   /tasks           -> store()
+// GET    /tasks/{id}      -> show()
+// PUT    /tasks/{id}      -> update()
+// DELETE /tasks/{id}      -> destroy()
+```
+
+### Opciones de apiResource:
+
+```php
+// Solo algunos métodos
+Route::apiResource('tasks', TaskController::class)
+    ->only(['index', 'show']);
+
+// Excluir algunos métodos
+Route::apiResource('tasks', TaskController::class)
+    ->except(['destroy']);
+```
+
+### ❌ EVITAR rutas individuales si puedes usar apiResource:
+```php
+// ❌ MAL - Código repetitivo
+Route::get('/tasks', [TaskController::class, 'index']);
+Route::post('/tasks', [TaskController::class, 'store']);
+Route::get('/tasks/{id}', [TaskController::class, 'show']);
+Route::put('/tasks/{id}', [TaskController::class, 'update']);
+Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
+
+// ✅ BIEN - Una línea
+Route::apiResource('tasks', TaskController::class);
+```
+
+## API RESOURCES
+
+### Crea API Resources para transformar datos:
+
+```bash
+php artisan make:resource TaskResource
+```
+
+### Uso correcto:
+
+```php
+// Para LISTAS (index)
+public function index()
+{
+    $tasks = Task::all();
+    return TaskResource::collection($tasks);
+}
+
+// Para UN SOLO elemento (show, store, update)
+public function show($id)
+{
+    $task = Task::findOrFail($id);
+    return new TaskResource($task);
+}
+
+public function store(StoreTaskRequest $request)
+{
+    $task = Task::create($request->validated());
+    return new TaskResource($task);
+}
+```
+
+### ❌ NUNCA devuelvas modelos directamente:
+```php
+// ❌ MAL
+return Task::all();
+return Task::find($id);
+
+// ✅ BIEN
+return TaskResource::collection(Task::all());
+return new TaskResource(Task::find($id));
+```
+
+## ELOQUENT Y MODELOS
+
+### Define fillable o guarded:
+```php
+class Task extends Model
+{
+    protected $fillable = ['title', 'description', 'status'];
+    
+    // O usa guarded
+    protected $guarded = ['id'];
+}
+```
+
+### Define relaciones correctamente:
+```php
+public function user()
+{
+    return $this->belongsTo(User::class);
+}
+
+public function comments()
+{
+    return $this->hasMany(Comment::class);
+}
+```
+
+## VALIDACIÓN
+
+### Usa Form Requests para validación:
+```php
+class StoreTaskRequest extends FormRequest
+{
+    public function rules()
+    {
+        return [
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'sometimes|in:pendiente,en progreso,completada',
+        ];
+    }
+}
+```
+
+### En el controlador:
+```php
+public function store(StoreTaskRequest $request)
+{
+    // La validación ya pasó automáticamente
+    $task = Task::create($request->validated());
+    return new TaskResource($task);
+}
+```
+
+## PRINCIPIOS SOLID
+
+- **S**ingle Responsibility: Cada clase tiene una sola responsabilidad
+- **O**pen/Closed: Abierto a extensión, cerrado a modificación
+- **L**iskov Substitution: Las subclases deben ser sustituibles por sus clases base
+- **I**nterface Segregation: Interfaces específicas mejor que una general
+- **D**ependency Inversion: Depende de abstracciones, no de implementaciones
+
+## FACTORIES Y SEEDERS
+
+### Usa factories para datos de prueba:
+```php
+Task::factory()->count(10)->create();
+```
+
+### Define factories realistas:
+```php
+public function definition()
+{
+    return [
+        'title' => fake()->sentence(),
+        'description' => fake()->paragraph(),
+        'status' => fake()->randomElement(['pendiente', 'en progreso', 'completada']),
+    ];
+}
+```
