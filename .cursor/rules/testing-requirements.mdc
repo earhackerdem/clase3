@@ -1,0 +1,107 @@
+---
+alwaysApply: true
+---
+
+# Testing y Cobertura (OBLIGATORIO)
+
+## ANTES DE HACER CAMBIOS
+
+### 1. Verifica tests existentes:
+- Revisa si existen tests para la funcionalidad
+- Si existen tests, verifica que cubran TODOS los verbos HTTP necesarios
+- Ejemplo: Si existe `TaskTest.php`, verifica que tenga tests para GET, POST, PUT, DELETE
+- Si faltan tests para algunos verbos, añádelos
+
+### 2. Ejecuta tests existentes:
+- Ejecuta `php artisan test` ANTES de modificar código
+- Asegúrate de que todos pasen antes de empezar
+
+## DURANTE EL DESARROLLO
+
+### 3. Crea/actualiza tests:
+- Si NO existen tests, créalos con: `php artisan make:test NombreTest`
+- Sigue el patrón **AAA** (Arrange, Act, Assert)
+
+### Ejemplo del patrón AAA:
+```php
+public function test_puede_actualizar_una_tarea()
+{
+    // Arrange: Prepara datos y estado inicial
+    $task = Task::factory()->create([
+        'title' => 'Tarea Original',
+        'status' => 'pendiente'
+    ]);
+    
+    // Act: Ejecuta la acción
+    $response = $this->putJson("/api/tasks/{$task->id}", [
+        'title' => 'Tarea Actualizada',
+        'status' => 'completada'
+    ]);
+    
+    // Assert: Verifica el resultado
+    $response->assertStatus(200);
+    $this->assertDatabaseHas('tasks', [
+        'id' => $task->id,
+        'title' => 'Tarea Actualizada',
+        'status' => 'completada'
+    ]);
+}
+```
+
+### 4. Asegúrate de cubrir TODOS los verbos necesarios:
+- ✅ GET /resource (index) - Listar todos
+- ✅ GET /resource/{id} (show) - Ver uno
+- ✅ POST /resource (store) - Crear
+- ✅ PUT /resource/{id} (update) - Actualizar
+- ✅ DELETE /resource/{id} (destroy) - Eliminar
+
+## DESPUÉS DEL REFACTOR
+
+### 5. Limpia caché:
+```bash
+php artisan optimize:clear
+```
+Esto elimina cache de rutas, config, views, etc.
+
+### 6. Ejecuta tests con cobertura:
+```bash
+php artisan test --coverage
+```
+- Verifica que la cobertura sea **mayor al 80%**
+- Si es menor, añade tests hasta alcanzar el objetivo
+
+### 7. Verifica que todos los tests pasen:
+- ❌ **NO hagas commits si algún test falla**
+- ❌ **NO hagas commits si la cobertura es menor al 80%**
+
+## ANTES DE HACER COMMITS
+
+### 8. Informa resultados:
+- Muestra resumen de tests ejecutados
+- Muestra porcentaje de cobertura alcanzado
+- Lista qué tests se crearon o modificaron
+- **PIDE CONFIRMACIÓN** antes de proceder con commits
+
+### Ejemplo de reporte:
+```
+✅ Tests ejecutados: 25
+✅ Tests pasados: 25
+✅ Cobertura alcanzada: 87%
+
+Tests creados/modificados:
+- test_puede_listar_todas_las_tareas()
+- test_puede_actualizar_una_tarea()
+- test_puede_eliminar_una_tarea()
+
+¿Procedo con los commits?
+```
+
+## REGLAS CRÍTICAS
+
+1. ❌ **NO commits si tests fallan**
+2. ❌ **NO commits si cobertura < 80%**
+3. ✅ **Ejecutar `php artisan optimize:clear` siempre**
+4. ✅ **Verificar TODOS los verbos HTTP en tests**
+5. ✅ **Seguir patrón AAA en tests**
+6. ✅ **Usar factories para datos de prueba**
+7. ✅ **Limpiar estado entre tests**

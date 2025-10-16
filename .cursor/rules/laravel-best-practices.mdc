@@ -1,0 +1,380 @@
+---
+alwaysApply: true
+---
+
+# Buenas Prácticas de Laravel 12
+
+## SCAFFOLDING DE LARAVEL (OBLIGATORIO)
+
+### USA comandos de `php artisan make:...` para generar archivos
+Nunca crees archivos manualmente si existe un comando artisan
+
+### Comandos disponibles:
+```bash
+php artisan make:model NombreModelo -m          # Con migración
+php artisan make:controller NombreController --api  # Controlador API
+php artisan make:request StoreNombreRequest     # Form Request
+php artisan make:factory NombreFactory          # Factory
+php artisan make:seeder NombreSeeder            # Seeder
+php artisan make:test NombreTest                # Test
+php artisan make:resource NombreResource        # API Resource
+```
+
+## SEPARACIÓN DE CAPAS
+
+### Organiza la lógica correctamente:
+
+- **Rutas:** Solo definiciones, NO lógica de negocio
+- **Controladores:** Coordinación, NO validación ni queries complejas
+- **Form Requests:** Toda la validación
+- **Modelos:** Relaciones y lógica de dominio
+- **Servicios:** Lógica de negocio compleja (cuando sea necesario)
+- **Resources:** Transformación de datos para respuestas API
+
+## RUTAS DE API
+
+### Usa `Route::apiResource()` para CRUD completos:
+
+```php
+// ✅ CORRECTO - Una línea genera 5 endpoints
+Route::apiResource('tasks', TaskController::class);
+
+// Esto genera automáticamente:
+// GET    /tasks           -> index()
+// POST   /tasks           -> store()
+// GET    /tasks/{id}      -> show()
+// PUT    /tasks/{id}      -> update()
+// DELETE /tasks/{id}      -> destroy()
+```
+
+### Opciones de apiResource:
+
+```php
+// Solo algunos métodos
+Route::apiResource('tasks', TaskController::class)
+    ->only(['index', 'show']);
+
+// Excluir algunos métodos
+Route::apiResource('tasks', TaskController::class)
+    ->except(['destroy']);
+```
+
+### ❌ EVITAR rutas individuales si puedes usar apiResource:
+```php
+// ❌ MAL - Código repetitivo
+Route::get('/tasks', [TaskController::class, 'index']);
+Route::post('/tasks', [TaskController::class, 'store']);
+Route::get('/tasks/{id}', [TaskController::class, 'show']);
+Route::put('/tasks/{id}', [TaskController::class, 'update']);
+Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
+
+// ✅ BIEN - Una línea
+Route::apiResource('tasks', TaskController::class);
+```
+
+### 📊 EJEMPLO REAL: Refactor de Tasks API
+
+**Antes (230 líneas en routes/api.php):**
+- Validaciones manuales mezcladas con lógica
+- Formateo de respuestas inconsistente
+- Difícil de mantener y testear
+
+**Después (13 líneas):**
+```php
+use App\Http\Controllers\TaskController;
+
+Route::apiResource('tasks', TaskController::class);
+```
+
+**Resultados:**
+- ✅ Reducción del 94.3% en líneas de código
+- ✅ Cobertura de tests: 90.7%
+- ✅ 19 tests pasando
+- ✅ Arquitectura en capas clara
+
+**Archivos generados:**
+- `TaskController.php` - 64 líneas de código limpio
+- `StoreTaskRequest.php` - Validaciones centralizadas
+- `UpdateTaskRequest.php` - Validaciones de actualización
+- `TaskResource.php` - Transformación estandarizada
+
+## API RESOURCES
+
+### Crea API Resources para transformar datos:
+
+```bash
+php artisan make:resource TaskResource
+```
+
+### Uso correcto:
+
+```php
+// Para LISTAS (index)
+public function index()
+{
+    $tasks = Task::all();
+    return TaskResource::collection($tasks);
+}
+
+// Para UN SOLO elemento (show, store, update)
+public function show($id)
+{
+    $task = Task::findOrFail($id);
+    return new TaskResource($task);
+}
+
+public function store(StoreTaskRequest $request)
+{
+    $task = Task::create($request->validated());
+    return new TaskResource($task);
+}
+```
+
+### ❌ NUNCA devuelvas modelos directamente:
+```php
+// ❌ MAL
+return Task::all();
+return Task::find($id);
+
+// ✅ BIEN
+return TaskResource::collection(Task::all());
+return new TaskResource(Task::find($id));
+```
+
+## ELOQUENT Y MODELOS
+
+### Define fillable o guarded:
+```php
+class Task extends Model
+{
+    protected $fillable = ['title', 'description', 'status'];
+    
+    // O usa guarded
+    protected $guarded = ['id'];
+}
+```
+
+### Define relaciones correctamente:
+```php
+public function user()
+{
+    return $this->belongsTo(User::class);
+}
+
+public function comments()
+{
+    return $this->hasMany(Comment::class);
+}
+```
+
+## VALIDACIÓN
+
+### Usa Form Requests para validación:
+```php
+class StoreTaskRequest extends FormRequest
+{
+    public function rules()
+    {
+        return [
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'sometimes|in:pendiente,en progreso,completada',
+        ];
+    }
+}
+```
+
+### En el controlador:
+```php
+public function store(StoreTaskRequest $request)
+{
+    // La validación ya pasó automáticamente
+    $task = Task::create($request->validated());
+    return new TaskResource($task);
+}
+```
+
+## PRINCIPIOS SOLID
+
+- **S**ingle Responsibility: Cada clase tiene una sola responsabilidad
+- **O**pen/Closed: Abierto a extensión, cerrado a modificación
+- **L**iskov Substitution: Las subclases deben ser sustituibles por sus clases base
+- **I**nterface Segregation: Interfaces específicas mejor que una general
+- **D**ependency Inversion: Depende de abstracciones, no de implementaciones
+
+## FACTORIES Y SEEDERS
+
+### Usa factories para datos de prueba:
+```php
+Task::factory()->count(10)->create();
+```
+
+### Define factories realistas:
+```php
+public function definition()
+{
+    return [
+        'title' => fake()->sentence(),
+        'description' => fake()->paragraph(),
+        'status' => fake()->randomElement(['pendiente', 'en progreso', 'completada']),
+    ];
+}
+```
+
+## ESTRUCTURA DE COMMITS EXITOSOS
+
+### Commits Lógicos por Capa
+
+**Orden recomendado basado en refactor exitoso de Tasks:**
+
+1. **Tests primero (TDD)**
+```bash
+git add tests/Feature/TaskApiTest.php
+git commit -m "[TESTS] Agregar tests para GET, PUT, DELETE de Tasks API
+
+- 10 tests nuevos usando patrón AAA
+- Tests para index, show, update, destroy
+- Todos usan Task::factory()
+- Cobertura objetivo: >80%"
+```
+
+2. **Form Requests (Validaciones)**
+```bash
+git add app/Http/Requests/
+git commit -m "[REFACTOR] Mover validaciones a Form Requests
+
+- StoreTaskRequest con validaciones para crear
+- UpdateTaskRequest con validaciones para actualizar
+- Migrada lógica desde routes/api.php
+- Separación correcta de responsabilidades"
+```
+
+3. **API Resources (Transformación)**
+```bash
+git add app/Http/Resources/
+git commit -m "[REFACTOR] Agregar TaskResource para respuestas API
+
+- TaskResource para transformación estandarizada
+- Reemplaza formateo manual de arrays
+- Permite uso de collection() para listas
+- Formato consistente en todas las respuestas"
+```
+
+4. **Controller (Coordinación)**
+```bash
+git add app/Http/Controllers/TaskController.php
+git commit -m "[REFACTOR] Crear TaskController con métodos API
+
+- 5 métodos RESTful implementados
+- index(), store(), show(), update(), destroy()
+- Usa Form Requests para validación
+- Usa Resources para respuestas
+- Código limpio y mantenible"
+```
+
+5. **Rutas (Simplificación)**
+```bash
+git add routes/api.php
+git commit -m "[REFACTOR] Simplificar rutas usando Route::apiResource
+
+- 230 líneas reducidas a 13 líneas (94.3%)
+- Route::apiResource() genera 5 rutas automáticamente
+- Toda lógica movida a capas correctas
+- Tests pasan, cobertura 90.7%"
+```
+
+## ANATOMÍA DE UN PULL REQUEST EXITOSO
+
+### Título Descriptivo
+```
+[REFACTOR] Migrar Tasks API a arquitectura en capas
+[FEATURE] Implementar CRUD completo de Tasks
+[FIX] Corregir validación en TaskController
+```
+
+### Descripción Completa
+
+**Incluir siempre:**
+
+1. **Contexto** - ¿Por qué este cambio?
+2. **Problema** - ¿Qué estaba mal?
+3. **Solución** - ¿Cómo se resolvió?
+4. **Testing** - Resultados de tests y cobertura
+5. **Archivos** - Lista de archivos nuevos/modificados
+6. **Checklist** - Validación de completitud
+
+**Ejemplo de PR exitoso:**
+```markdown
+## Contexto
+Refactorizar CRUD de Tasks desde closures a arquitectura en capas.
+
+## Problema
+- ❌ 230 líneas mezcladas en routes/api.php
+- ❌ Validaciones manuales repetitivas
+- ❌ Difícil de testear y mantener
+
+## Solución
+- ✅ TaskController con 5 métodos RESTful
+- ✅ Form Requests para validaciones
+- ✅ TaskResource para respuestas
+- ✅ Route::apiResource() en una línea
+
+## Testing
+- ✅ 19 tests pasando (50 assertions)
+- ✅ Cobertura: 90.7%
+- ✅ Todos los verbos HTTP cubiertos
+
+## Archivos Creados (4)
+- TaskController.php
+- StoreTaskRequest.php
+- UpdateTaskRequest.php
+- TaskResource.php
+
+## Archivos Modificados (2)
+- routes/api.php (230 → 13 líneas)
+- TaskApiTest.php (+212 líneas de tests)
+
+## Checklist
+- [x] Tests pasan
+- [x] Cobertura >80%
+- [x] PSR-12 aplicado
+- [x] Commits lógicos
+```
+
+## MÉTRICAS DE CALIDAD
+
+### Indicadores de Código Limpio
+
+**✅ Excelente:**
+- Cobertura >85%
+- Líneas por método <20
+- Complejidad ciclomática <10
+- Tests descriptivos con patrón AAA
+- Commits lógicos y atómicos
+
+**⚠️ Revisar:**
+- Cobertura 70-80%
+- Líneas por método 20-50
+- Métodos con múltiples responsabilidades
+- Tests sin Factory
+- Commits gigantes
+
+**❌ Refactorizar:**
+- Cobertura <70%
+- Líneas por método >50
+- Lógica en rutas o closures
+- Sin tests
+- Commits "fix", "wip", "changes"
+
+## CHECKLIST ANTES DE MERGE
+
+- [ ] Todos los tests pasan
+- [ ] Cobertura >80%
+- [ ] Sin errores de linter
+- [ ] PSR-12 aplicado
+- [ ] Documentación actualizada (si aplica)
+- [ ] Commits descriptivos y lógicos
+- [ ] PR con descripción completa
+- [ ] Sin console.log, dd(), dump() en código
+- [ ] Variables y métodos con nombres claros
+- [ ] Sin código comentado innecesario
