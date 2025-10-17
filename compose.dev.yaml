@@ -44,6 +44,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy # Wait for postgres to be healthy
+      mysql:
+        condition: service_healthy # Wait for mysql to be healthy
 
   workspace:
     # For the workspace service, we will also create a custom image to install and setup all the necessary stuff.
@@ -69,6 +71,8 @@ services:
       - laravel-development
     depends_on:
       postgres:
+        condition: service_healthy
+      mysql:
         condition: service_healthy
 
   postgres:
@@ -101,11 +105,51 @@ services:
       timeout: 3s
       retries: 5
 
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_secret}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-laravel}
+      - MYSQL_USER=${MYSQL_USER:-laravel}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-secret}
+    volumes:
+      - mysql-data-development:/var/lib/mysql
+      - ./docker/development/mysql/my.cnf:/etc/mysql/conf.d/custom.cnf:ro
+      - ./storage/logs/mysql:/var/log/mysql
+    networks:
+      - laravel-development
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_secret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    command: --mysql-native-password=ON
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - "${PHPMYADMIN_PORT:-8080}:80"
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - PMA_USER=root
+      - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_secret}
+      - UPLOAD_LIMIT=64M
+    networks:
+      - laravel-development
+    depends_on:
+      mysql:
+        condition: service_healthy
+
 networks:
   laravel-development:
     driver: bridge
 
 volumes:
   postgres-data-development:
+    driver: local
+  mysql-data-development:
     driver: local
 
