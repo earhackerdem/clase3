@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Script para inicializar el entorno de desarrollo con Docker
-# Laravel 12 con PostgreSQL
+# Laravel 12 con MySQL 8.4 (PostgreSQL también disponible)
 
 set -e
 
-echo "🚀 Inicializando entorno de desarrollo Laravel con Docker..."
+echo "🚀 Inicializando entorno de desarrollo Laravel con Docker y MySQL..."
 echo ""
 
 # Colores para output
@@ -66,8 +66,8 @@ echo -e "${YELLOW}🚢 Levantando contenedores...${NC}"
 docker compose -f compose.dev.yaml up -d
 
 echo ""
-echo -e "${YELLOW}⏳ Esperando a que PostgreSQL esté listo...${NC}"
-sleep 10
+echo -e "${YELLOW}⏳ Esperando a que MySQL y PostgreSQL estén listos...${NC}"
+sleep 15
 
 # Instalar dependencias de PHP
 echo ""
@@ -107,24 +107,45 @@ echo -e "${GREEN}║                                                           �
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${YELLOW}📋 Información del entorno:${NC}"
-echo -e "   🌐 Aplicación: ${GREEN}http://localhost:8000${NC}"
-echo -e "   🐘 PostgreSQL: ${GREEN}localhost:5432${NC}"
+echo -e "   🌐 Aplicación Laravel: ${GREEN}http://localhost:8000${NC}"
+echo ""
+echo -e "   ${YELLOW}Bases de Datos:${NC}"
+echo -e "   🐬 MySQL 8.4 (predeterminada): ${GREEN}localhost:3306${NC}"
 echo -e "      └─ Usuario: laravel"
 echo -e "      └─ Contraseña: secret"
 echo -e "      └─ Base de datos: laravel"
+echo -e "      └─ Root password: root_secret"
+echo ""
+echo -e "   🐘 PostgreSQL 16 (alternativa): ${GREEN}localhost:5432${NC}"
+echo -e "      └─ Usuario: laravel"
+echo -e "      └─ Contraseña: secret"
+echo -e "      └─ Base de datos: laravel"
+echo ""
+echo -e "   ${YELLOW}Herramientas Web:${NC}"
+echo -e "   🔧 phpMyAdmin: ${GREEN}http://localhost:8080${NC}"
+echo -e "      └─ Usuario: root"
+echo -e "      └─ Contraseña: root_secret"
+echo ""
 echo -e "   🔴 Redis: ${GREEN}localhost:6379${NC}"
 echo ""
-echo -e "${YELLOW}🛠️  Comandos útiles:${NC}"
-echo -e "   Ver logs:           ${GREEN}docker compose -f compose.dev.yaml logs -f${NC}"
-echo -e "   Detener:            ${GREEN}docker compose -f compose.dev.yaml stop${NC}"
-echo -e "   Iniciar:            ${GREEN}docker compose -f compose.dev.yaml start${NC}"
-echo -e "   Reiniciar:          ${GREEN}docker compose -f compose.dev.yaml restart${NC}"
-echo -e "   Eliminar todo:      ${GREEN}docker compose -f compose.dev.yaml down -v${NC}"
+echo -e "${YELLOW}🛠️  Comandos útiles con Makefile:${NC}"
+echo -e "   Ver ayuda:          ${GREEN}make help${NC}"
+echo -e "   Ver logs:           ${GREEN}make logs${NC}"
+echo -e "   Detener:            ${GREEN}make down${NC}"
+echo -e "   Iniciar:            ${GREEN}make up${NC}"
+echo -e "   Reiniciar:          ${GREEN}make restart${NC}"
+echo -e "   Estado:             ${GREEN}make ps${NC}"
 echo ""
-echo -e "   Entrar al workspace:  ${GREEN}docker compose -f compose.dev.yaml exec -u www workspace bash${NC}"
-echo -e "   Ejecutar artisan:     ${GREEN}docker compose -f compose.dev.yaml exec -u www workspace php artisan${NC}"
-echo -e "   Ejecutar composer:    ${GREEN}docker compose -f compose.dev.yaml exec -u www workspace composer${NC}"
-echo -e "   Ejecutar npm:         ${GREEN}docker compose -f compose.dev.yaml exec -u www workspace bash -c 'source ~/.nvm/nvm.sh && npm'${NC}"
+echo -e "   Entrar al workspace: ${GREEN}make shell${NC}"
+echo -e "   MySQL CLI:           ${GREEN}make mysql-shell${NC}"
+echo -e "   PostgreSQL CLI:      ${GREEN}make db-shell${NC}"
+echo -e "   Migraciones:         ${GREEN}make migrate${NC}"
+echo -e "   Tests:               ${GREEN}make test${NC}"
+echo ""
+echo -e "${YELLOW}📊 Monitoreo de MySQL:${NC}"
+echo -e "   Ver slow queries:    ${GREEN}make mysql-slow${NC}"
+echo -e "   Performance stats:   ${GREEN}make mysql-perf${NC}"
+echo -e "   Monitoreo completo:  ${GREEN}make mysql-monitor${NC}"
 echo ""
 echo -e "${GREEN}🎉 ¡Feliz desarrollo!${NC}"
 echo ""

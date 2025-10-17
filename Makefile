@@ -45,6 +45,10 @@ help:
 	@echo "  make fresh         - Refrescar base de datos"
 	@echo "  make seed          - Ejecutar seeders"
 	@echo "  make fresh-seed    - Refrescar DB y ejecutar seeders"
+	@echo "  make mysql-shell   - Acceder a MySQL CLI"
+	@echo "  make mysql-slow    - Ver slow query log"
+	@echo "  make mysql-perf    - Ver performance stats"
+	@echo "  make mysql-monitor - Monitoreo completo de MySQL"
 	@echo "  make db-shell      - Acceder a PostgreSQL CLI"
 	@echo ""
 	@echo "$(YELLOW)🧹 Caché y Limpieza:$(NC)"
@@ -173,6 +177,38 @@ fresh-seed:
 	@echo "$(YELLOW)🔄 Refrescando base de datos y ejecutando seeders...$(NC)"
 	@$(EXEC) php artisan migrate:fresh --seed
 	@echo "$(GREEN)✅ Base de datos refrescada y sembrada$(NC)"
+
+## mysql-shell: Acceder a MySQL CLI
+mysql-shell:
+	@echo "$(GREEN)🐬 Accediendo a MySQL...$(NC)"
+	@$(COMPOSE) exec mysql mysql -u laravel -psecret laravel
+
+## mysql-slow: Ver slow query log
+mysql-slow:
+	@echo "$(YELLOW)🐌 Visualizando slow query log...$(NC)"
+	@if [ -f storage/logs/mysql/mysql-slow.log ]; then \
+		tail -n 50 storage/logs/mysql/mysql-slow.log; \
+	else \
+		echo "$(RED)No se encontró el archivo de slow query log$(NC)"; \
+	fi
+
+## mysql-perf: Ver performance stats desde Performance Schema
+mysql-perf:
+	@echo "$(YELLOW)📊 Performance Statistics (Top 10 Slowest Queries):$(NC)"
+	@$(COMPOSE) exec mysql mysql -u root -proot_secret -e "\
+		SELECT \
+			DIGEST_TEXT as query, \
+			COUNT_STAR as exec_count, \
+			ROUND(AVG_TIMER_WAIT/1000000000000, 2) as avg_time_sec, \
+			ROUND(SUM_TIMER_WAIT/1000000000000, 2) as total_time_sec \
+		FROM performance_schema.events_statements_summary_by_digest \
+		WHERE DIGEST_TEXT IS NOT NULL \
+		ORDER BY SUM_TIMER_WAIT DESC \
+		LIMIT 10;"
+
+## mysql-monitor: Ejecutar script de monitoreo completo de MySQL
+mysql-monitor:
+	@./scripts/mysql-monitor.sh all
 
 ## db-shell: Acceder a PostgreSQL CLI
 db-shell:
