@@ -1,10 +1,10 @@
-# Laravel 12 con Docker + PostgreSQL
+# Laravel 12 con Docker + MySQL
 
 <p align="center">
 <a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a>
 </p>
 
-Este es un proyecto Laravel 12 completamente configurado con Docker, PostgreSQL 16, Redis y Nginx. El entorno está optimizado para desarrollo con hot-reload, Xdebug y todas las herramientas necesarias.
+Este es un proyecto Laravel 12 completamente configurado con Docker, MySQL 8.4, PostgreSQL 16, Redis y Nginx. El entorno está optimizado para desarrollo con hot-reload, Xdebug, monitoreo de performance y todas las herramientas necesarias.
 
 ---
 
@@ -45,7 +45,9 @@ El script automáticamente:
 Una vez completada la instalación:
 
 - **🌐 Aplicación Web:** http://localhost:8000
-- **🐘 PostgreSQL:** localhost:5432
+- **🔧 phpMyAdmin:** http://localhost:8080
+- **🐬 MySQL:** localhost:3306 (base de datos predeterminada)
+- **🐘 PostgreSQL:** localhost:5432 (alternativa)
 - **🔴 Redis:** localhost:6379
 
 ---
@@ -110,18 +112,25 @@ make restart
 | **web** | Nginx latest | 8000 | Servidor web optimizado |
 | **php-fpm** | PHP 8.2-FPM | 9000 | Procesador PHP con extensiones |
 | **workspace** | PHP 8.2 CLI | - | Herramientas de desarrollo |
-| **postgres** | PostgreSQL 16 | 5432 | Base de datos principal |
+| **mysql** | MySQL 8.4 LTS | 3306 | **Base de datos predeterminada** |
+| **postgres** | PostgreSQL 16 | 5432 | Base de datos alternativa |
 | **redis** | Redis Alpine | 6379 | Caché y sesiones |
+| **phpmyadmin** | phpMyAdmin | 8080 | Interfaz web para MySQL |
 
 ### Características
 
 - ✅ **Hot Reload:** Los cambios en el código se reflejan automáticamente
+- ✅ **MySQL 8.4 LTS:** Base de datos predeterminada con monitoreo avanzado
+- ✅ **Slow Query Log:** Queries > 1 segundo se registran automáticamente
+- ✅ **Performance Schema:** Análisis detallado de rendimiento
+- ✅ **phpMyAdmin:** Interfaz web para gestión de MySQL
+- ✅ **PostgreSQL 16:** Disponible como alternativa
 - ✅ **Xdebug:** Configurado para debugging (puerto 9003)
 - ✅ **Node.js 22:** Incluido en workspace con NVM
 - ✅ **Composer:** Última versión instalada
 - ✅ **Multi-stage builds:** Imágenes optimizadas
 - ✅ **Health checks:** Auto-reinicio de servicios
-- ✅ **Persistencia:** Datos de PostgreSQL persistentes
+- ✅ **Persistencia:** Datos de MySQL y PostgreSQL persistentes
 
 ---
 
@@ -132,13 +141,24 @@ make restart
 El archivo `.env` se genera automáticamente desde `.env.example`. Configuración principal:
 
 ```bash
-# Base de Datos
-DB_CONNECTION=pgsql
-DB_HOST=postgres      # Nombre del servicio Docker
-DB_PORT=5432
+# Base de Datos (MySQL predeterminado)
+DB_CONNECTION=mysql
+DB_HOST=mysql         # Nombre del servicio Docker
+DB_PORT=3306
 DB_DATABASE=laravel
 DB_USERNAME=laravel
 DB_PASSWORD=secret
+
+# MySQL Adicional
+MYSQL_ROOT_PASSWORD=root_secret
+MYSQL_PORT=3306
+
+# PostgreSQL (Alternativa)
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+
+# phpMyAdmin
+PHPMYADMIN_PORT=8080
 
 # Redis
 REDIS_HOST=redis      # Nombre del servicio Docker
@@ -154,7 +174,37 @@ XDEBUG_ENABLED=true
 XDEBUG_HOST=host.docker.internal
 ```
 
-### Acceso a PostgreSQL
+### Acceso a MySQL (Predeterminado)
+
+**Desde tu host (MySQL Workbench, DBeaver, phpMyAdmin, etc.):**
+```
+Host: localhost
+Puerto: 3306
+Usuario: laravel
+Contraseña: secret
+Base de datos: laravel
+
+# Para tareas administrativas
+Root password: root_secret
+```
+
+**Desde otros contenedores Docker:**
+```
+Host: mysql
+Puerto: 3306
+Usuario: laravel
+Contraseña: secret
+Base de datos: laravel
+```
+
+**phpMyAdmin (interfaz web):**
+```
+URL: http://localhost:8080
+Usuario: root
+Contraseña: root_secret
+```
+
+### Acceso a PostgreSQL (Alternativa)
 
 **Desde tu host (pgAdmin, DBeaver, etc.):**
 ```
@@ -173,6 +223,15 @@ Usuario: laravel
 Contraseña: secret
 Base de datos: laravel
 ```
+
+**Para cambiar a PostgreSQL:**
+Edita `.env` y cambia:
+```bash
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
+```
+Luego ejecuta: `make fresh`
 
 ---
 
@@ -237,15 +296,50 @@ make fresh
 make fresh-seed
 ```
 
-### Acceder a PostgreSQL CLI
+### Acceso a Consolas de Base de Datos
 
 ```bash
-# Usando Makefile
+# MySQL CLI (base de datos predeterminada)
+make mysql-shell
+
+# PostgreSQL CLI (alternativa)
 make db-shell
 
 # O con Docker Compose
+docker compose -f compose.dev.yaml exec mysql mysql -u laravel -psecret laravel
 docker compose -f compose.dev.yaml exec postgres psql -U laravel -d laravel
 ```
+
+### 📊 Monitoreo de Performance MySQL
+
+El proyecto incluye herramientas avanzadas de monitoreo para MySQL:
+
+```bash
+# Ver queries lentas (> 1 segundo)
+make mysql-slow
+
+# Ver estadísticas de performance
+make mysql-perf
+
+# Monitoreo completo (slow queries, performance, conexiones, tablas)
+make mysql-monitor
+
+# O usar el script directamente
+./scripts/mysql-monitor.sh all
+./scripts/mysql-monitor.sh perf     # Solo performance
+./scripts/mysql-monitor.sh slow     # Solo slow queries
+./scripts/mysql-monitor.sh conn     # Solo conexiones
+./scripts/mysql-monitor.sh tables   # Solo tablas
+./scripts/mysql-monitor.sh innodb   # Solo InnoDB stats
+./scripts/mysql-monitor.sh noindex  # Queries sin índices
+```
+
+**Características del Monitoreo:**
+- 🐌 **Slow Query Log**: Queries > 1 segundo en `storage/logs/mysql/mysql-slow.log`
+- 📈 **Performance Schema**: Análisis detallado de queries con tiempos de ejecución
+- 🔍 **Detección de Queries sin Índices**: Identifica consultas que necesitan optimización
+- 📊 **Estadísticas de InnoDB**: Buffer pool, cache hits, y métricas de rendimiento
+- 🔌 **Monitoreo de Conexiones**: Conexiones activas, threads y estados
 
 ---
 
@@ -306,15 +400,27 @@ echo "GID=$(id -g)" >> .env
 make restart
 ```
 
-### PostgreSQL no inicia
+### MySQL o PostgreSQL no inicia
 
 ```bash
-# Ver logs
+# Ver logs de MySQL
+docker compose -f compose.dev.yaml logs mysql
+
+# Ver logs de PostgreSQL
 docker compose -f compose.dev.yaml logs postgres
 
 # Reiniciar con volúmenes limpios
 make clean
 make setup
+```
+
+### Error de conexión a MySQL
+
+Verifica que `DB_HOST=mysql` en `.env` (no localhost):
+```bash
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
 ```
 
 ### Error "No application encryption key"

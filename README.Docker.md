@@ -1,10 +1,10 @@
 # 🐳 Entorno de Desarrollo Docker para Laravel 12
 
-Este proyecto está configurado para ejecutarse en un entorno de desarrollo completo usando Docker y Docker Compose con PostgreSQL como base de datos.
+Este proyecto está configurado para ejecutarse en un entorno de desarrollo completo usando Docker y Docker Compose con MySQL 8.4 como base de datos predeterminada y PostgreSQL 16 como alternativa.
 
 ## 📋 Requisitos Previos
 
-- Docker Engine 20.10+ 
+- Docker Engine 20.10+
 - Docker Compose v2+
 - Git
 
@@ -13,10 +13,12 @@ Este proyecto está configurado para ejecutarse en un entorno de desarrollo comp
 El entorno incluye los siguientes servicios:
 
 - **web (Nginx)**: Servidor web en el puerto 8000
-- **php-fpm**: Procesador PHP-FPM 8.2 con extensiones para Laravel
+- **php-fpm**: Procesador PHP-FPM 8.2 con extensiones para Laravel (MySQL, PostgreSQL, Redis)
 - **workspace**: Contenedor de trabajo con PHP CLI, Composer, Node.js y herramientas de desarrollo
-- **postgres**: PostgreSQL 16 en el puerto 5432
+- **mysql**: MySQL 8.4 LTS en el puerto 3306 (base de datos predeterminada)
+- **postgres**: PostgreSQL 16 en el puerto 5432 (base de datos alternativa)
 - **redis**: Redis Alpine para caché y sesiones
+- **phpmyadmin**: phpMyAdmin en el puerto 8080 para gestión de MySQL
 
 ## 🚀 Inicio Rápido
 
@@ -69,7 +71,15 @@ docker compose -f compose.dev.yaml exec -u www workspace bash -c "source ~/.nvm/
 Una vez iniciado, los servicios estarán disponibles en:
 
 - **Aplicación Laravel**: http://localhost:8000
-- **PostgreSQL**: localhost:5432
+- **phpMyAdmin**: http://localhost:8080
+  - Usuario: `root`
+  - Contraseña: `root_secret`
+- **MySQL 8.4** (predeterminado): localhost:3306
+  - Base de datos: `laravel`
+  - Usuario: `laravel`
+  - Contraseña: `secret`
+  - Root password: `root_secret`
+- **PostgreSQL 16** (alternativa): localhost:5432
   - Base de datos: `laravel`
   - Usuario: `laravel`
   - Contraseña: `secret`
@@ -133,7 +143,10 @@ docker compose -f compose.dev.yaml exec -u www workspace ./vendor/bin/phpunit
 ### Base de Datos
 
 ```bash
-# Acceder a PostgreSQL CLI
+# Acceder a MySQL CLI (base de datos predeterminada)
+docker compose -f compose.dev.yaml exec mysql mysql -u laravel -psecret laravel
+
+# Acceder a PostgreSQL CLI (alternativa)
 docker compose -f compose.dev.yaml exec postgres psql -U laravel -d laravel
 
 # Ejecutar migraciones
@@ -150,6 +163,38 @@ docker compose -f compose.dev.yaml exec -u www workspace php artisan db:seed
 
 # Refrescar y sembrar
 docker compose -f compose.dev.yaml exec -u www workspace php artisan migrate:fresh --seed
+```
+
+### Monitoreo de MySQL
+
+```bash
+# Ver queries lentas (> 1 segundo)
+tail -f storage/logs/mysql/mysql-slow.log
+
+# Ver estadísticas de performance
+docker compose -f compose.dev.yaml exec mysql mysql -u root -proot_secret -e "
+  SELECT DIGEST_TEXT as query,
+         COUNT_STAR as exec_count,
+         ROUND(AVG_TIMER_WAIT/1000000000000, 2) as avg_time_sec
+  FROM performance_schema.events_statements_summary_by_digest
+  WHERE DIGEST_TEXT IS NOT NULL
+  ORDER BY SUM_TIMER_WAIT DESC
+  LIMIT 10;"
+
+# Ver conexiones activas
+docker compose -f compose.dev.yaml exec mysql mysql -u root -proot_secret -e "SHOW PROCESSLIST;"
+
+# Ver estadísticas de tablas
+docker compose -f compose.dev.yaml exec mysql mysql -u root -proot_secret laravel -e "
+  SELECT table_name,
+         table_rows,
+         ROUND(data_length / 1024 / 1024, 2) as data_mb
+  FROM information_schema.tables
+  WHERE table_schema = 'laravel'
+  ORDER BY data_length DESC;"
+
+# O usar el script de monitoreo completo
+./scripts/mysql-monitor.sh all
 ```
 
 ### Caché y Optimización
@@ -240,13 +285,30 @@ proyecto/
 Las principales variables en `.env` relacionadas con Docker:
 
 ```env
-# Base de Datos PostgreSQL
-DB_CONNECTION=pgsql
-DB_HOST=postgres
-DB_PORT=5432
+# Base de Datos MySQL (predeterminada)
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
 DB_DATABASE=laravel
 DB_USERNAME=laravel
 DB_PASSWORD=secret
+
+# MySQL Configuración Adicional
+MYSQL_ROOT_PASSWORD=root_secret
+MYSQL_USER=laravel
+MYSQL_PASSWORD=secret
+MYSQL_DATABASE=laravel
+MYSQL_PORT=3306
+
+# PostgreSQL (alternativa)
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DATABASE=laravel
+POSTGRES_USERNAME=laravel
+POSTGRES_PASSWORD=secret
+
+# phpMyAdmin
+PHPMYADMIN_PORT=8080
 
 # Redis
 REDIS_HOST=redis
@@ -265,6 +327,22 @@ XDEBUG_IDE_KEY=DOCKER
 
 ## 🔧 Personalización
 
+### Cambiar de MySQL a PostgreSQL
+
+Para usar PostgreSQL en lugar de MySQL:
+
+1. Edita `.env`:
+```env
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
+```
+
+2. Refresca la base de datos:
+```bash
+docker compose -f compose.dev.yaml exec -u www workspace php artisan migrate:fresh --seed
+```
+
 ### Cambiar el Puerto de Nginx
 
 Edita `.env`:
@@ -275,6 +353,18 @@ NGINX_PORT=9000
 Reinicia los contenedores:
 ```bash
 docker compose -f compose.dev.yaml restart web
+```
+
+### Cambiar el Puerto de phpMyAdmin
+
+Edita `.env`:
+```env
+PHPMYADMIN_PORT=9080
+```
+
+Reinicia los contenedores:
+```bash
+docker compose -f compose.dev.yaml restart phpmyadmin
 ```
 
 ### Deshabilitar Xdebug (mejora el rendimiento)
@@ -317,6 +407,24 @@ docker compose -f compose.dev.yaml down
 docker compose -f compose.dev.yaml up -d --build
 ```
 
+### MySQL no inicia
+
+Verifica los logs:
+```bash
+docker compose -f compose.dev.yaml logs mysql
+```
+
+Revisa el archivo de error:
+```bash
+cat storage/logs/mysql/mysql-error.log
+```
+
+Elimina el volumen y vuelve a crear:
+```bash
+docker compose -f compose.dev.yaml down -v
+docker compose -f compose.dev.yaml up -d
+```
+
 ### PostgreSQL no inicia
 
 Verifica los logs:
@@ -329,6 +437,23 @@ Elimina el volumen y vuelve a crear:
 docker compose -f compose.dev.yaml down -v
 docker compose -f compose.dev.yaml up -d
 ```
+
+### Error de conexión a MySQL desde Laravel
+
+Asegúrate de usar el nombre del servicio Docker en `.env`:
+```env
+DB_HOST=mysql  # NO uses localhost o 127.0.0.1
+DB_PORT=3306
+```
+
+### phpMyAdmin no puede conectarse a MySQL
+
+Verifica que MySQL esté saludable:
+```bash
+docker compose -f compose.dev.yaml ps mysql
+```
+
+Debe mostrar "healthy" en la columna STATUS.
 
 ### Error "No application encryption key has been specified"
 
@@ -354,10 +479,24 @@ docker compose -f compose.dev.yaml exec -u www workspace php artisan optimize:cl
 ## 📝 Notas
 
 - Este entorno está optimizado para **desarrollo**, no para producción
+- **MySQL 8.4 LTS** es la base de datos predeterminada
+- **PostgreSQL 16** está disponible como alternativa
+- Slow Query Log captura automáticamente queries > 1 segundo
+- Performance Schema está habilitado para monitoreo avanzado
 - Los archivos se montan como volúmenes para permitir hot-reload
 - Las dependencias se instalan dentro del contenedor workspace
 - Redis está configurado para sesiones y caché por defecto
 - El workspace incluye Xdebug para debugging
+- phpMyAdmin está disponible para gestión visual de MySQL
+
+## 📊 Archivos de Configuración MySQL
+
+- **Configuración personalizada**: `docker/development/mysql/my.cnf`
+- **Slow Query Log**: `storage/logs/mysql/mysql-slow.log`
+- **Error Log**: `storage/logs/mysql/mysql-error.log`
+- **Script de monitoreo**: `scripts/mysql-monitor.sh`
+
+Estos archivos están excluidos del control de versiones via `.gitignore`.
 
 ---
 

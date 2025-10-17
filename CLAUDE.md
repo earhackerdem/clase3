@@ -10,14 +10,16 @@ This is a Laravel 12 application running in a fully Dockerized environment with 
 
 ### Docker Architecture
 
-The project uses Docker Compose with 5 services:
+The project uses Docker Compose with 7 services:
 - **web**: Nginx (port 8000) - serves the application
-- **php-fpm**: PHP 8.2-FPM with PostgreSQL, Redis extensions, and Xdebug
+- **php-fpm**: PHP 8.2-FPM with MySQL, PostgreSQL, Redis extensions, and Xdebug
 - **workspace**: PHP 8.2 CLI with Composer, Node.js 22 (via NVM), and development tools
-- **postgres**: PostgreSQL 16 (port 5432) - main database
+- **mysql**: MySQL 8.4 LTS (port 3306) - **default database**
+- **postgres**: PostgreSQL 16 (port 5432) - alternative database
 - **redis**: Redis Alpine (port 6379) - cache, sessions, and queues
+- **phpmyadmin**: phpMyAdmin (port 8080) - MySQL web interface
 
-All services communicate over the `laravel-development` bridge network using service names (e.g., `postgres:5432`, `redis:6379`).
+All services communicate over the `laravel-development` bridge network using service names (e.g., `mysql:3306`, `postgres:5432`, `redis:6379`).
 
 ### Key Files
 - `compose.dev.yaml` - Docker Compose configuration for development
@@ -88,7 +90,16 @@ make fresh-seed
 # Run seeders only
 make seed
 
-# Access PostgreSQL CLI
+# Access MySQL CLI (default database)
+make mysql-shell
+
+# View slow query log (queries > 1 second)
+make mysql-slow
+
+# View MySQL performance statistics
+make mysql-perf
+
+# Access PostgreSQL CLI (alternative database)
 make db-shell
 ```
 
@@ -124,19 +135,81 @@ make npm CMD="install"
 
 ## Database Configuration
 
-The application uses **PostgreSQL** in Docker. Never use SQLite in development (only for tests).
+The application has **two databases available**: MySQL (default) and PostgreSQL. Never use SQLite in development (only for tests).
 
-### Connection Details
+### MySQL Configuration (Default Database)
+
+**Recommended for this project.** MySQL 8.4 LTS with optimized configuration, slow query logging, and Performance Schema enabled.
+
+#### Connection Details
 
 From Laravel (`.env`):
 ```
-DB_CONNECTION=pgsql
-DB_HOST=postgres          # Docker service name, not localhost
-DB_PORT=5432
+DB_CONNECTION=mysql
+DB_HOST=mysql             # Docker service name, not localhost
+DB_PORT=3306
 DB_DATABASE=laravel
 DB_USERNAME=laravel
 DB_PASSWORD=secret
 ```
+
+From host machine (MySQL Workbench, DBeaver, or phpMyAdmin):
+```
+Host: localhost
+Port: 3306
+Database: laravel
+User: laravel
+Password: secret
+
+# For administrative tasks
+Root Password: root_secret
+```
+
+#### phpMyAdmin Access
+
+Web interface for MySQL management:
+- **URL**: http://localhost:8080
+- **Server**: mysql
+- **Username**: root
+- **Password**: root_secret
+
+#### Performance Monitoring
+
+MySQL is configured with advanced monitoring features:
+
+1. **Slow Query Log**: Automatically logs queries taking more than 1 second
+   - Location: `storage/logs/mysql/mysql-slow.log`
+   - View: `make mysql-slow`
+   - Includes queries not using indexes
+
+2. **Performance Schema**: Enabled for detailed query analysis
+   - View top slow queries: `make mysql-perf`
+   - Analyze query performance, resource usage, and bottlenecks
+   - Full access via MySQL CLI or phpMyAdmin
+
+3. **Custom Configuration**: `docker/development/mysql/my.cnf`
+   - Optimized buffer pool size (256M)
+   - InnoDB optimizations
+   - UTF8mb4 by default
+   - Query optimization settings
+
+### PostgreSQL Configuration (Alternative Database)
+
+PostgreSQL 16 is available but not the default. To switch to PostgreSQL:
+
+1. Update `.env`:
+   ```
+   DB_CONNECTION=pgsql
+   DB_HOST=postgres
+   DB_PORT=5432
+   DB_DATABASE=laravel
+   DB_USERNAME=laravel
+   DB_PASSWORD=secret
+   ```
+
+2. Run migrations: `make fresh`
+
+#### Connection Details
 
 From host machine (pgAdmin, DBeaver):
 ```
@@ -145,6 +218,42 @@ Port: 5432
 Database: laravel
 User: laravel
 Password: secret
+```
+
+### Switching Between Databases
+
+The project maintains both MySQL and PostgreSQL configurations. To switch:
+
+1. **To MySQL** (default):
+   ```bash
+   # Update DB_CONNECTION in .env
+   DB_CONNECTION=mysql
+   DB_HOST=mysql
+   DB_PORT=3306
+
+   # Refresh migrations
+   make fresh
+   ```
+
+2. **To PostgreSQL**:
+   ```bash
+   # Update DB_CONNECTION in .env
+   DB_CONNECTION=pgsql
+   DB_HOST=postgres
+   DB_PORT=5432
+
+   # Refresh migrations
+   make fresh
+   ```
+
+### Database CLI Access
+
+```bash
+# MySQL (default)
+make mysql-shell
+
+# PostgreSQL (alternative)
+make db-shell
 ```
 
 ## Architecture Patterns
@@ -302,3 +411,4 @@ When creating commits:
 - `INICIO-RAPIDO.md` - Fast setup guide
 - `GUIA-PRUEBA.md` - Testing guide for new machines
 - `RESUMEN-CONFIGURACION.md` - Configuration summary
+- Al configurar nuevos MCPs, rastrea los cambios y si la configuración del MCP contiene API Keys o configuración sensible, añade una variable .ENV y actualiza la configuración del MCP para que adquiera el valor de dicha variable
