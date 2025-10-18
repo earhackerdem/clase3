@@ -56,6 +56,25 @@ fi
 
 echo -e "${YELLOW}👤 Configurando permisos con UID=${USER_UID} y GID=${USER_GID}${NC}"
 
+# Crear estructura de directorios de Laravel si no existe
+echo ""
+echo -e "${YELLOW}📁 Creando estructura de directorios de storage...${NC}"
+
+# Crear directorios de storage/framework si no existen
+mkdir -p storage/framework/cache
+mkdir -p storage/framework/sessions
+mkdir -p storage/framework/views
+mkdir -p storage/framework/testing
+mkdir -p storage/logs
+mkdir -p storage/app/public
+mkdir -p bootstrap/cache
+
+# Establecer permisos correctos
+chmod -R 775 storage bootstrap/cache
+chown -R ${USER_UID}:${USER_GID} storage bootstrap/cache 2>/dev/null || true
+
+echo -e "${GREEN}✓ Estructura de directorios de storage creada${NC}"
+
 # Construir y levantar los contenedores
 echo ""
 echo -e "${YELLOW}🏗️  Construyendo imágenes Docker (esto puede tomar varios minutos)...${NC}"
